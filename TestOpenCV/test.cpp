@@ -7,7 +7,7 @@ using namespace cv;
 using namespace std;
 
 
-int amin = 255, amax=255;
+int amin = 140, amax = 255, bmin = 255, bmax = 255, lmin = 255, lmax = 255;
 
 
 int main() {
@@ -37,66 +37,84 @@ int main() {
 
     // Seuils sur les canaux
     Mat lMask, aMask, bMask;
-    inRange(lChannel, 50, 250, lMask);  // Luminosité entre 50 et 200
-    inRange(aChannel, 140, 200, aMask); // Rouge dans le canal a
-    inRange(bChannel, 120, 160, bMask); // Exclusion des zones jaunes/bleues
 
-    // Combiner les masques
-    Mat redMask;
-    bitwise_and(aMask, lMask, redMask);
-    bitwise_and(redMask, bMask, redMask);
+    namedWindow("TrackBar", (620, 200));
+    createTrackbar("Amin", "TrackBar", &amin, 130);
+    createTrackbar("Amax", "TrackBar", &amax, 255);
+    createTrackbar("Bmin", "TrackBar", &bmin, 255);
+    createTrackbar("Bmax", "TrackBar", &bmax, 255);
+    createTrackbar("Lmin", "TrackBar", &lmin, 255);
+    createTrackbar("Lmax", "TrackBar", &lmax, 255);
 
-    //#################
-     
-    
-    // Détection du rouge : seuils dans le canal a
-   // Mat redMask;
-    //inRange(aChannel, 140, 200, redMask); // Ajustez les seuils si nécessaire
 
-    // Étape 3 : Morphologie mathématique
-    int ddd = 9,dddd=9;
-    Mat kernel = getStructuringElement(MORPH_RECT, Size(ddd, ddd));
-    Mat kernel2 = getStructuringElement(MORPH_RECT, Size(dddd, dddd));
+    while (true) {
+        //  inRange(lChannel, 50, 250, lMask);  // Luminosité entre 50 et 200
+        //  inRange(aChannel, 140, 200, aMask); // Rouge dans le canal a
+        //  inRange(bChannel, 120, 160, bMask); // Exclusion des zones jaunes/bleues
 
-    morphologyEx(redMask, redMask, MORPH_OPEN, kernel);  // Ouverture pour réduire le bruit
-    morphologyEx(redMask, redMask, MORPH_CLOSE, kernel2); // Fermeture pour combler les trous
+        inRange(lChannel, lmin, lmax, lMask);  // Luminosité entre 50 et 200
+        inRange(aChannel, amin, amax, aMask); // Rouge dans le canal a
+        inRange(bChannel, bmin, bmax, bMask); // Exclusion des zones jaunes/bleues
 
-    // Étape 4 : Étiquetage des composantes connexes
-    Mat labels, stats, centroids;
-    int numComponents = connectedComponentsWithStats(redMask, labels, stats, centroids, 4, CV_32S);
+        // Combiner les masques
+        Mat redMask;
+        bitwise_and(aMask, lMask, redMask);
+        bitwise_and(redMask, bMask, redMask);
 
-    // **Filtrer les petites composantes**
-    int minArea = 150;//109; // Ajustez cette valeur selon les dimensions des bâtiments
-    int validComponents = 0;
-    Mat filteredMask = Mat::zeros(redMask.size(), CV_8U);
+        //#################
 
-    for (int i = 1; i < numComponents; i++) { // Ignorer l'arrière-plan (i = 0)
-        int area = stats.at<int>(i, CC_STAT_AREA);
-        if (area >= minArea) {
-            validComponents++;
-            // Ajouter cette composante au masque filtré
-            for (int y = 0; y < labels.rows; y++) {
-                for (int x = 0; x < labels.cols; x++) {
-                    if (labels.at<int>(y, x) == i) {
-                        filteredMask.at<uchar>(y, x) = 255;
+
+        // Détection du rouge : seuils dans le canal a
+       // Mat redMask;
+        //inRange(aChannel, 140, 200, redMask); // Ajustez les seuils si nécessaire
+
+        // Étape 3 : Morphologie mathématique
+        int ddd = 9, dddd = 9;
+        Mat kernel = getStructuringElement(MORPH_RECT, Size(ddd, ddd));
+        Mat kernel2 = getStructuringElement(MORPH_RECT, Size(dddd, dddd));
+
+        morphologyEx(redMask, redMask, MORPH_OPEN, kernel);  // Ouverture pour réduire le bruit
+        morphologyEx(redMask, redMask, MORPH_CLOSE, kernel2); // Fermeture pour combler les trous
+
+        // Étape 4 : Étiquetage des composantes connexes
+        Mat labels, stats, centroids;
+        int numComponents = connectedComponentsWithStats(redMask, labels, stats, centroids, 4, CV_32S);
+
+        // **Filtrer les petites composantes**
+        int minArea = 150;//109; // Ajustez cette valeur selon les dimensions des bâtiments
+        int validComponents = 0;
+        Mat filteredMask = Mat::zeros(redMask.size(), CV_8U);
+
+        for (int i = 1; i < numComponents; i++) { // Ignorer l'arrière-plan (i = 0)
+            int area = stats.at<int>(i, CC_STAT_AREA);
+            if (area >= minArea) {
+                validComponents++;
+                // Ajouter cette composante au masque filtré
+                for (int y = 0; y < labels.rows; y++) {
+                    for (int x = 0; x < labels.cols; x++) {
+                        if (labels.at<int>(y, x) == i) {
+                            filteredMask.at<uchar>(y, x) = 255;
+                        }
                     }
                 }
             }
         }
+
+        // Affichage du nombre de bâtiments valides détectés
+        cout << "Nombre de bâtiments avec toit rouge (valide) : " << validComponents << endl;
+
+        // Étape 5 : Visualisation
+        imshow("Image Originale", img);
+        imshow("Toits Rouges Détectés (Filtrés)", filteredMask);
+        waitKey(1);
+
+
     }
-
-    // Affichage du nombre de bâtiments valides détectés
-    cout << "Nombre de bâtiments avec toit rouge (valide) : " << validComponents << endl;
-
-    // Étape 5 : Visualisation
-    imshow("Image Originale", img);
-    imshow("Toits Rouges Détectés (Filtrés)", filteredMask);
-    waitKey(0);
-
-    return 0;
-}
-
+        return 0;
     
+
+
+}
 /*
     if (img.empty()) {
         cout << "Erreur : Impossible de charger l'image." << endl;
