@@ -7,7 +7,6 @@ using namespace cv;
 using namespace std;
 
 
-int amin = 140, amax = 255, bmin = 255, bmax = 255, lmin = 255, lmax = 255;
 
 
 int main() {
@@ -34,13 +33,9 @@ int main() {
     // Détection du rouge : seuils dans le canal a
     Mat redMask;
 
-    namedWindow("TrackBar", (620, 200));
-    createTrackbar("Amin", "TrackBar",&amin,255 );
-    createTrackbar("Amax", "TrackBar",&amax,255 );
-
-    while(true){
-
-        inRange(aChannel, amin, amax, redMask); // Ajustez les seuils si nécessaire
+  
+    
+        inRange(aChannel, 140, 200, redMask); // Ajustez les seuils si nécessaire
 
         // Étape 3 : Morphologie mathématique
         Mat kernel = getStructuringElement(MORPH_RECT, Size(5, 5));
@@ -74,10 +69,10 @@ int main() {
         imshow("Bâtiments Identifiés", output);
 
 
-        waitKey(1);
+        waitKey(0);
 
 
-    }
+    
 
 
     return 0;
