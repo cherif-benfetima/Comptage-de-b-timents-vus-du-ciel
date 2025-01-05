@@ -11,7 +11,7 @@ using namespace std;
 
 int main() {
         // Étape 1 : Chargement de l'image
-        string path = "Resources/im08.jpg";
+        string path = "Resources/im12.jpg";
 
         Mat img = imread(path);
 
@@ -35,19 +35,20 @@ int main() {
         inRange(aChannel, 140, 200, redMask); // Ajustez les seuils si nécessaire
 
         // Étape 3 : Morphologie mathématique
-        int k1 = 9, k2 = 9;
+        int k1 = 3, k2 = 7;
         Mat kernel = getStructuringElement(MORPH_RECT, Size(k1,k1));
         Mat kernel2 = getStructuringElement(MORPH_RECT, Size(k2,k2));
 
-        morphologyEx(redMask, redMask, MORPH_OPEN, kernel);  // Ouverture pour réduire le bruit
         morphologyEx(redMask, redMask, MORPH_CLOSE, kernel2); // Fermeture pour combler les trous
+        morphologyEx(redMask, redMask, MORPH_OPEN, kernel);  // Ouverture pour réduire le bruit
+
 
         // Étape 4 : Étiquetage des composantes connexes
         Mat labels, stats, centroids;
         int numComponents = connectedComponentsWithStats(redMask, labels, stats, centroids, 8, CV_32S);
 
             // **Filtrer les petites composantes**
-            int minArea = 10; // Ajustez cette valeur selon les dimensions des bâtiments
+            int minArea = 300; // Ajustez cette valeur selon les dimensions des bâtiments
         int validComponents = 0;
         Mat filteredMask = Mat::zeros(redMask.size(), CV_8U);
 
